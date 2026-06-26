@@ -1,60 +1,36 @@
-# 🚀 FastAPI Stage 1 – Hello World API
+# 🚀 FastAPI Stage 2 – Request & Response Models with Pydantic
 
 ## 📖 Overview
 
-This project is the first stage of learning **FastAPI** by implementing a simple **Hello World API** using the official FastAPI tutorial.
+This project is the second stage of learning **FastAPI** by implementing **request validation** and **response models** using **Pydantic**.
 
-The purpose of this stage is to understand the basic structure of a FastAPI application, how to create API endpoints, and how FastAPI automatically generates interactive API documentation.
+The objective of this stage is to understand how FastAPI validates incoming request data, serializes responses, and automatically generates API documentation.
 
 ---
 
-## 🎯 Learning Objectives
+# 🎯 Learning Objectives
 
 After completing this stage, you will understand:
 
-- What FastAPI is
-- How to create a FastAPI application
-- How to define API endpoints
-- How to run a FastAPI server
-- How to use automatic Swagger UI documentation
-- How OpenAPI documentation is generated automatically
+- What Pydantic models are
+- Request body validation
+- Response models
+- Data serialization
+- Email validation
+- FastAPI automatic documentation
+- OpenAPI schema generation
 
 ---
 
 # 📂 Project Structure
 
-```
-FastAPI-HelloWorld/
+```text
+FastAPI-Stage2/
 │
 ├── main.py              # FastAPI application
 ├── pyproject.toml       # FastAPI configuration
-└── README.md
-```
-
----
-
-# 📝 Source Code
-
-### main.py
-
-```python
-from fastapi import FastAPI
-
-app = FastAPI()
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-```
-
----
-
-### pyproject.toml
-
-```toml
-[tool.fastapi]
-entrypoint = "main:app"
+├── README.md
+└── .gitignore
 ```
 
 ---
@@ -81,7 +57,7 @@ python --version
 
 ```bash
 git clone <repository-url>
-cd FastAPI-HelloWorld
+cd FastAPI-Stage2
 ```
 
 ---
@@ -110,10 +86,10 @@ source venv/bin/activate
 
 ---
 
-## 4. Install FastAPI
+## 4. Install Dependencies
 
 ```bash
-pip install "fastapi[standard]"
+pip install "fastapi[standard]" email-validator
 ```
 
 ---
@@ -128,8 +104,6 @@ fastapi dev
 
 # 🌐 Application URLs
 
-Once the server starts, open the following URLs:
-
 | Service | URL |
 |----------|-----|
 | Main Application | http://127.0.0.1:8000 |
@@ -139,105 +113,181 @@ Once the server starts, open the following URLs:
 
 ---
 
-# 📌 API Endpoint
+# 📌 API Endpoints
 
 ## GET /
 
 Returns a simple greeting message.
 
+### Response
+
+```json
+{
+  "message": "Hello World"
+}
+```
+
+---
+
+## POST /items/
+
+Creates a new item and automatically calculates the total price including tax.
+
 ### Request
 
-```http
-GET /
+```json
+{
+  "name": "Laptop",
+  "description": "Gaming Laptop",
+  "price": 50000,
+  "tax": 5000
+}
 ```
 
 ### Response
 
 ```json
 {
-    "message": "Hello World"
+  "id": 1,
+  "name": "Laptop",
+  "description": "Gaming Laptop",
+  "price": 50000,
+  "tax": 5000,
+  "price_with_tax": 55000
 }
 ```
+
+---
+
+## GET /items/{item_id}
+
+Returns an item using the provided item ID.
+
+### Example
+
+```http
+GET /items/1
+```
+
+### Response
+
+```json
+{
+  "id": 1,
+  "name": "Sample Item",
+  "description": "A sample item description",
+  "price": 99.99,
+  "tax": 8.99,
+  "price_with_tax": 108.98
+}
+```
+
+---
+
+## POST /user/
+
+Creates a new user.
+
+### Request
+
+```json
+{
+  "username": "bharathi",
+  "email": "bharathi@example.com",
+  "full_name": "Bharathi S",
+  "password": "secret123"
+}
+```
+
+### Response
+
+```json
+{
+  "username": "bharathi",
+  "email": "bharathi@example.com",
+  "full_name": "Bharathi S"
+}
+```
+
+> **Note:** The password is not returned because the API uses `response_model=UserOut`.
 
 ---
 
 # 🧪 Testing the API
 
-### Using Browser
+## Using Swagger UI
 
-Open
-
-```
-http://127.0.0.1:8000/
-```
-
-Response
-
-```json
-{
-    "message": "Hello World"
-}
-```
-
----
-
-### Using Swagger UI
-
-1. Open
+Open:
 
 ```
 http://127.0.0.1:8000/docs
 ```
 
-2. Click **GET /**
-
-3. Click **Try it out**
-
-4. Click **Execute**
-
+1. Select an endpoint.
+2. Click **Try it out**.
+3. Enter the request body (if required).
+4. Click **Execute**.
 5. View the response.
 
 ---
 
 # 📚 Understanding the Code
 
-### FastAPI Instance
+## Pydantic Models
 
-```python
-app = FastAPI()
-```
+The project uses the following models:
 
-Creates the FastAPI application.
+### Item Models
 
----
+- `ItemBase`
+- `ItemCreate`
+- `ItemResponse`
 
-### Path Operation Decorator
+### User Models
 
-```python
-@app.get("/")
-```
+- `UserBase`
+- `UserIn`
+- `UserOut`
 
-Defines an HTTP **GET** endpoint.
+These models provide:
 
----
-
-### Path Operation Function
-
-```python
-async def root():
-```
-
-Handles incoming requests for the root endpoint.
+- Automatic validation
+- Type checking
+- JSON serialization
+- API documentation generation
 
 ---
 
-### JSON Response
+## Request Validation
+
+FastAPI validates incoming JSON automatically before executing the endpoint.
+
+Example:
 
 ```python
-return {"message": "Hello World"}
+class UserIn(UserBase):
+    password: str
 ```
 
-FastAPI automatically converts Python dictionaries into JSON responses.
+---
+
+## Response Model
+
+```python
+@app.post("/user/", response_model=UserOut)
+```
+
+FastAPI automatically removes fields that are not included in `UserOut`.
+
+---
+
+## Email Validation
+
+```python
+email: EmailStr
+```
+
+FastAPI validates email addresses automatically using Pydantic.
 
 ---
 
@@ -254,9 +304,9 @@ FastAPI automatically generates API documentation using the **OpenAPI** specific
 Features:
 
 - Interactive API testing
-- Request and response schemas
-- API endpoint documentation
-- Execute APIs directly from the browser
+- Request validation
+- Response schemas
+- API documentation
 
 ---
 
@@ -282,16 +332,15 @@ Contains the complete OpenAPI specification in JSON format.
 
 # 💡 Key Concepts Learned
 
-- FastAPI application structure
-- Creating REST APIs
-- HTTP GET method
-- Path operations
-- Async functions
-- JSON responses
-- Automatic API documentation
-- OpenAPI specification
+- Pydantic Models
+- Request Body Validation
+- Response Models
+- Email Validation
+- JSON Serialization
+- Automatic API Documentation
+- OpenAPI Specification
 - FastAPI CLI
-- Development server
+- Async API Development
 
 ---
 
@@ -300,8 +349,9 @@ Contains the complete OpenAPI specification in JSON format.
 | Technology | Version |
 |------------|----------|
 | Python | 3.11+ |
-| FastAPI | 0.138.0 |
-| Uvicorn | 0.49.0 |
+| FastAPI | Latest |
+| Pydantic | v2 |
+| Uvicorn | Latest |
 | OpenAPI | 3.1 |
 
 ---
@@ -310,12 +360,13 @@ Contains the complete OpenAPI specification in JSON format.
 
 By completing this stage, you can:
 
-- ✅ Build your first FastAPI application
-- ✅ Create REST API endpoints
-- ✅ Run a local development server
+- ✅ Create Pydantic models
+- ✅ Validate request bodies
+- ✅ Use response models
+- ✅ Validate email addresses
+- ✅ Build REST APIs with FastAPI
 - ✅ Test APIs using Swagger UI
-- ✅ Understand FastAPI project structure
-- ✅ Explore automatically generated API documentation
+- ✅ Understand automatic API documentation
 
 ---
 
@@ -325,13 +376,12 @@ In the next stage, you will learn:
 
 - Path Parameters
 - Query Parameters
-- Request Body Validation
-- Pydantic Models
-- Response Models
 - HTTP Status Codes
-- Error Handling
-- CRUD APIs
+- Dependency Injection
+- Exception Handling
+- CRUD Operations
 - Database Integration
+- SQLAlchemy
 - Authentication & Authorization
 
 ---
@@ -342,12 +392,11 @@ In the next stage, you will learn:
 
 - FastAPI Documentation: https://fastapi.tiangolo.com/
 - FastAPI Tutorial: https://fastapi.tiangolo.com/tutorial/
+- Pydantic Documentation: https://docs.pydantic.dev/
 - Uvicorn Documentation: https://www.uvicorn.org/
-- OpenAPI Specification: https://www.openapis.org/
 
 ---
 
-# ⭐ Why FastAPI?
+# ⭐ Why Pydantic?
 
-FastAPI is a modern, high-performance Python web framework for building APIs with automatic validation, interactive documentation, asynchronous support, and excellent developer productivity. It is widely used for backend development, microservices, and machine learning APIs.
-
+Pydantic provides powerful data validation using Python type hints. FastAPI integrates with Pydantic to automatically validate incoming requests, serialize responses, and generate interactive API documentation, making backend development faster, safer, and more maintainable.
