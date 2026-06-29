@@ -1,10 +1,10 @@
-# 🚀 FastAPI Stage 2 – Request & Response Models with Pydantic
+# 🚀 FastAPI Stage 3 – SQLModel, SQLite & Database Migrations
 
 ## 📖 Overview
 
-This project is the second stage of learning **FastAPI** by implementing **request validation** and **response models** using **Pydantic**.
+This project is the third stage of learning **FastAPI** by implementing **database integration** using **SQLModel**, **SQLite**, and **Alembic**.
 
-The objective of this stage is to understand how FastAPI validates incoming request data, serializes responses, and automatically generates API documentation.
+The objective of this stage is to understand how to define database models, store application data in a relational database, generate migration scripts, and safely update the database schema without manually modifying database tables.
 
 ---
 
@@ -12,25 +12,36 @@ The objective of this stage is to understand how FastAPI validates incoming requ
 
 After completing this stage, you will understand:
 
-- What Pydantic models are
-- Request body validation
-- Response models
-- Data serialization
-- Email validation
-- FastAPI automatic documentation
-- OpenAPI schema generation
+- SQLModel ORM
+- SQLite database integration
+- Database Models
+- Request & Response Models
+- CRUD Operations
+- Dependency Injection
+- Database Sessions
+- Alembic Migrations
+- Schema Versioning
+- Automatic Migration Generation
 
 ---
 
 # 📂 Project Structure
 
 ```text
-FastAPI-Stage2/
+FastAPI-Stage3/
 │
-├── main.py              # FastAPI application
-├── pyproject.toml       # FastAPI configuration
+├── main.py                 # FastAPI application
+├── models.py               # SQLModel database models
+├── database.db             # SQLite database
+├── pyproject.toml
+├── alembic.ini             # Alembic configuration
 ├── README.md
-└── .gitignore
+├── .gitignore
+│
+└── alembic/
+    ├── env.py
+    ├── script.py.mako
+    └── versions/
 ```
 
 ---
@@ -43,7 +54,7 @@ Before starting, make sure you have installed:
 - pip
 - Virtual Environment (venv)
 
-Check your Python version:
+Check Python version:
 
 ```bash
 python --version
@@ -53,11 +64,11 @@ python --version
 
 # 🛠️ Installation
 
-## 1. Clone the Repository
+## 1. Clone Repository
 
 ```bash
 git clone <repository-url>
-cd FastAPI-Stage2
+cd FastAPI-Stage3
 ```
 
 ---
@@ -89,7 +100,9 @@ source venv/bin/activate
 ## 4. Install Dependencies
 
 ```bash
-pip install "fastapi[standard]" email-validator
+pip install "fastapi[standard]"
+pip install sqlmodel
+pip install alembic
 ```
 
 ---
@@ -113,34 +126,81 @@ fastapi dev
 
 ---
 
+# 📌 Database Models
+
+This project uses multiple models to separate the database schema from the API contract.
+
+## HeroBase
+
+Contains common fields shared by all models.
+
+```python
+name: str
+age: int | None
+```
+
+---
+
+## Hero
+
+Database table model.
+
+```python
+id
+name
+age
+secret_name
+```
+
+---
+
+## HeroCreate
+
+Used for creating a new hero.
+
+```python
+name
+age
+secret_name
+```
+
+---
+
+## HeroPublic
+
+Returned to API clients.
+
+```python
+id
+name
+age
+```
+
+> The `secret_name` field is intentionally hidden from API responses.
+
+---
+
+## HeroUpdate
+
+Used for updating an existing hero.
+
+All fields are optional.
+
+---
+
 # 📌 API Endpoints
 
-## GET /
+## POST /heroes/
 
-Returns a simple greeting message.
-
-### Response
-
-```json
-{
-  "message": "Hello World"
-}
-```
-
----
-
-## POST /items/
-
-Creates a new item and automatically calculates the total price including tax.
+Creates a new hero.
 
 ### Request
 
 ```json
 {
-  "name": "Laptop",
-  "description": "Gaming Laptop",
-  "price": 50000,
-  "tax": 5000
+  "name": "Spider-Man",
+  "age": 18,
+  "secret_name": "Peter Parker"
 }
 ```
 
@@ -149,198 +209,177 @@ Creates a new item and automatically calculates the total price including tax.
 ```json
 {
   "id": 1,
-  "name": "Laptop",
-  "description": "Gaming Laptop",
-  "price": 50000,
-  "tax": 5000,
-  "price_with_tax": 55000
+  "name": "Spider-Man",
+  "age": 18
 }
 ```
 
 ---
 
-## GET /items/{item_id}
+## GET /heroes/
 
-Returns an item using the provided item ID.
-
-### Example
-
-```http
-GET /items/1
-```
-
-### Response
-
-```json
-{
-  "id": 1,
-  "name": "Sample Item",
-  "description": "A sample item description",
-  "price": 99.99,
-  "tax": 8.99,
-  "price_with_tax": 108.98
-}
-```
+Returns all heroes.
 
 ---
 
-## POST /user/
+## GET /heroes/{hero_id}
 
-Creates a new user.
+Returns a hero by ID.
 
-### Request
+---
 
-```json
-{
-  "username": "bharathi",
-  "email": "bharathi@example.com",
-  "full_name": "Bharathi S",
-  "password": "secret123"
-}
-```
+## PATCH /heroes/{hero_id}
 
-### Response
+Updates an existing hero.
 
-```json
-{
-  "username": "bharathi",
-  "email": "bharathi@example.com",
-  "full_name": "Bharathi S"
-}
-```
+---
 
-> **Note:** The password is not returned because the API uses `response_model=UserOut`.
+## DELETE /heroes/{hero_id}
+
+Deletes a hero.
 
 ---
 
 # 🧪 Testing the API
 
-## Using Swagger UI
-
-Open:
+Open Swagger UI:
 
 ```
 http://127.0.0.1:8000/docs
 ```
 
-1. Select an endpoint.
-2. Click **Try it out**.
-3. Enter the request body (if required).
-4. Click **Execute**.
-5. View the response.
+You can:
+
+- Create Heroes
+- Retrieve Heroes
+- Update Heroes
+- Delete Heroes
+
+---
+
+# 🗄️ SQLite Database
+
+The application automatically creates
+
+```
+database.db
+```
+
+SQLite stores all Hero records locally.
+
+---
+
+# 🔄 Database Migrations with Alembic
+
+Initialize Alembic:
+
+```bash
+alembic init alembic
+```
+
+---
+
+Generate a migration:
+
+```bash
+alembic revision --autogenerate -m "Create Hero table"
+```
+
+---
+
+Apply the migration:
+
+```bash
+alembic upgrade head
+```
+
+---
+
+Whenever the database model changes:
+
+```bash
+alembic revision --autogenerate -m "Add new column"
+alembic upgrade head
+```
+
+This safely updates the database schema without manually editing database tables.
 
 ---
 
 # 📚 Understanding the Code
 
-## Pydantic Models
+## SQLModel
 
-The project uses the following models:
+SQLModel combines SQLAlchemy and Pydantic.
 
-### Item Models
+It provides:
 
-- `ItemBase`
-- `ItemCreate`
-- `ItemResponse`
-
-### User Models
-
-- `UserBase`
-- `UserIn`
-- `UserOut`
-
-These models provide:
-
-- Automatic validation
-- Type checking
-- JSON serialization
-- API documentation generation
+- Database ORM
+- Data Validation
+- Type Hints
+- Automatic Serialization
 
 ---
 
-## Request Validation
+## SQLite
 
-FastAPI validates incoming JSON automatically before executing the endpoint.
+SQLite is a lightweight relational database used for local development.
 
-Example:
+No additional installation is required.
+
+---
+
+## Dependency Injection
+
+Database sessions are created using:
 
 ```python
-class UserIn(UserBase):
-    password: str
+Depends(get_session)
 ```
+
+This automatically provides a database session for every request.
 
 ---
 
-## Response Model
+## Response Models
+
+The API returns
 
 ```python
-@app.post("/user/", response_model=UserOut)
+HeroPublic
 ```
 
-FastAPI automatically removes fields that are not included in `UserOut`.
-
----
-
-## Email Validation
+instead of
 
 ```python
-email: EmailStr
+Hero
 ```
 
-FastAPI validates email addresses automatically using Pydantic.
+This prevents internal database fields such as `secret_name` from being exposed.
 
 ---
 
-# 📖 Automatic API Documentation
+## Alembic
 
-FastAPI automatically generates API documentation using the **OpenAPI** specification.
+Alembic manages database schema changes using migration files.
 
-## Swagger UI
-
-```
-/docs
-```
-
-Features:
-
-- Interactive API testing
-- Request validation
-- Response schemas
-- API documentation
-
----
-
-## ReDoc
-
-```
-/redoc
-```
-
-Provides a clean and readable API reference.
-
----
-
-## OpenAPI Schema
-
-```
-/openapi.json
-```
-
-Contains the complete OpenAPI specification in JSON format.
+Instead of manually editing tables, migrations allow database updates to be version-controlled and reproducible.
 
 ---
 
 # 💡 Key Concepts Learned
 
-- Pydantic Models
-- Request Body Validation
+- SQLModel
+- SQLite
+- ORM Models
+- CRUD APIs
+- Database Sessions
+- Dependency Injection
+- Alembic
+- Database Migrations
+- Request Models
 - Response Models
-- Email Validation
-- JSON Serialization
-- Automatic API Documentation
-- OpenAPI Specification
-- FastAPI CLI
-- Async API Development
+- Schema Versioning
 
 ---
 
@@ -350,9 +389,11 @@ Contains the complete OpenAPI specification in JSON format.
 |------------|----------|
 | Python | 3.11+ |
 | FastAPI | Latest |
-| Pydantic | v2 |
+| SQLModel | Latest |
+| SQLAlchemy | 2.x |
+| SQLite | Latest |
+| Alembic | Latest |
 | Uvicorn | Latest |
-| OpenAPI | 3.1 |
 
 ---
 
@@ -360,13 +401,14 @@ Contains the complete OpenAPI specification in JSON format.
 
 By completing this stage, you can:
 
-- ✅ Create Pydantic models
-- ✅ Validate request bodies
-- ✅ Use response models
-- ✅ Validate email addresses
-- ✅ Build REST APIs with FastAPI
-- ✅ Test APIs using Swagger UI
-- ✅ Understand automatic API documentation
+- ✅ Create database tables using SQLModel
+- ✅ Store application data in SQLite
+- ✅ Build CRUD APIs
+- ✅ Separate Database Models from API Models
+- ✅ Generate Alembic migration files
+- ✅ Apply database migrations
+- ✅ Safely modify database schemas
+- ✅ Protect internal database fields using response models
 
 ---
 
@@ -374,15 +416,14 @@ By completing this stage, you can:
 
 In the next stage, you will learn:
 
-- Path Parameters
-- Query Parameters
-- HTTP Status Codes
+- Relationships (One-to-Many)
+- Foreign Keys
+- Authentication
+- JWT Tokens
+- User Login
+- Protected Routes
 - Dependency Injection
-- Exception Handling
-- CRUD Operations
-- Database Integration
-- SQLAlchemy
-- Authentication & Authorization
+- Advanced CRUD Operations
 
 ---
 
@@ -391,12 +432,13 @@ In the next stage, you will learn:
 ## Official Documentation
 
 - FastAPI Documentation: https://fastapi.tiangolo.com/
-- FastAPI Tutorial: https://fastapi.tiangolo.com/tutorial/
-- Pydantic Documentation: https://docs.pydantic.dev/
-- Uvicorn Documentation: https://www.uvicorn.org/
+- SQLModel Documentation: https://sqlmodel.tiangolo.com/
+- SQLAlchemy Documentation: https://docs.sqlalchemy.org/
+- Alembic Documentation: https://alembic.sqlalchemy.org/
+- SQLite Documentation: https://sqlite.org/
 
 ---
 
-# ⭐ Why Pydantic?
+# ⭐ Why SQLModel & Alembic?
 
-Pydantic provides powerful data validation using Python type hints. FastAPI integrates with Pydantic to automatically validate incoming requests, serialize responses, and generate interactive API documentation, making backend development faster, safer, and more maintainable.
+SQLModel combines the power of SQLAlchemy with Pydantic, making it easy to build type-safe database models for FastAPI applications. Alembic provides a reliable migration system that tracks database schema changes, allowing developers to evolve the database safely without manually modifying tables.
