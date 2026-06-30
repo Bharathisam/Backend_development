@@ -1,10 +1,10 @@
-# FastAPI Stage 4 – Route Registration & Input Validation
+# FastAPI Stage 5 – Business Logic and Data Access
 
 ## Overview
 
-This project is the fourth stage of learning **FastAPI** by implementing **route registration** and **input validation** using FastAPI and SQLModel.
+This project is the fifth stage of learning **FastAPI** by implementing a clean project architecture using the **Service Layer** and **Repository Pattern**.
 
-The objective of this stage is to validate incoming requests before they reach the application logic or database. FastAPI automatically validates request bodies, query parameters, and path parameters, returning clear **422 Unprocessable Entity** responses for invalid input.
+The objective of this stage is to separate API routes, business logic, and database access into independent layers. This improves code readability, maintainability, scalability, and makes the application easier to test.
 
 ---
 
@@ -12,12 +12,12 @@ The objective of this stage is to validate incoming requests before they reach t
 
 After completing this stage, you will understand:
 
-- How to register API routes using FastAPI
-- How to validate request bodies using SQLModel/Pydantic
-- How to validate query parameters
-- How to validate path parameters
-- How FastAPI automatically returns validation errors (422)
-- How Swagger UI documents validation rules automatically
+- How to separate business logic from API routes
+- How to implement the Service Layer pattern
+- How to implement the Repository Pattern
+- How to organize FastAPI projects using a layered architecture
+- How to keep route functions clean and readable
+- How to improve code maintainability and scalability
 
 ---
 
@@ -38,168 +38,170 @@ After completing this stage, you will understand:
 FastAPI-Learning/
 │
 ├── alembic/
+│
+├── repository/
+│   ├── __init__.py
+│   └── hero_repository.py
+│
+├── services/
+│   ├── __init__.py
+│   └── hero_service.py
+│
 ├── database.db
 ├── database.py
 ├── main.py
 ├── models.py
 ├── pyproject.toml
-├── README.md
-└── venv/
+└── README.md
+```
+
+---
+
+# Architecture
+
+```
+Client
+   │
+   ▼
+FastAPI Routes (main.py)
+   │
+   ▼
+Service Layer
+   │
+   ▼
+Repository Layer
+   │
+   ▼
+SQLite Database
 ```
 
 ---
 
 # Features Implemented
 
-## Route Registration
+## Thin Route Functions
 
-Registered CRUD API endpoints for Heroes.
+The API routes are responsible only for:
+
+- Receiving requests
+- Calling the appropriate service
+- Returning the response
+
+Example:
+
+```python
+@app.post("/heroes/", response_model=HeroPublic)
+def create_hero(hero: HeroCreate, session: SessionDep):
+    return hero_service.create_hero(session, hero)
+```
+
+---
+
+## Service Layer
+
+The Service Layer contains the application's business logic.
+
+Responsibilities include:
+
+- Validating application workflow
+- Handling business rules
+- Managing exceptions
+- Calling the Repository Layer
+
+Implemented functions:
+
+- Create Hero
+- Read All Heroes
+- Read Hero by ID
+- Update Hero
+- Delete Hero
+
+---
+
+## Repository Layer
+
+The Repository Layer is responsible for database operations.
+
+Responsibilities include:
+
+- Insert records
+- Retrieve records
+- Update records
+- Delete records
+
+Implemented functions:
+
+- create_hero()
+- get_all_heroes()
+- get_hero_by_id()
+- update_hero()
+- delete_hero()
+
+---
+
+## CRUD Operations
 
 | Method | Endpoint | Description |
 |---------|-----------|-------------|
-| POST | `/heroes/` | Create a new hero |
-| GET | `/heroes/` | Retrieve all heroes |
-| GET | `/heroes/{hero_id}` | Retrieve hero by ID |
-| PATCH | `/heroes/{hero_id}` | Update hero details |
-| DELETE | `/heroes/{hero_id}` | Delete hero |
+| POST | `/heroes/` | Create Hero |
+| GET | `/heroes/` | Retrieve All Heroes |
+| GET | `/heroes/{hero_id}` | Retrieve Hero by ID |
+| PATCH | `/heroes/{hero_id}` | Update Hero |
+| DELETE | `/heroes/{hero_id}` | Delete Hero |
 
 ---
 
-## Request Body Validation
+# Separation of Responsibilities
 
-Added validation for incoming request data.
-
-Validation rules include:
-
-- Hero name must contain **3–50 characters**
-- Secret name must contain **3–100 characters**
-- Age must be between **1 and 120**
-
-Example:
-
-```json
-{
-  "name": "Batman",
-  "age": 35,
-  "secret_name": "Bruce Wayne"
-}
-```
+| Layer | Responsibility |
+|--------|----------------|
+| main.py | API Routes |
+| hero_service.py | Business Logic |
+| hero_repository.py | Database Operations |
+| models.py | SQLModel Models |
+| database.py | Database Configuration |
 
 ---
 
-## Query Parameter Validation
+# Benefits of the Architecture
 
-Validated pagination parameters.
-
-| Parameter | Validation |
-|-----------|------------|
-| offset | Must be ≥ 0 |
-| limit | Must be between 1 and 100 |
-
-Example:
-
-```
-GET /heroes/?offset=0&limit=10
-```
-
-Invalid example:
-
-```
-GET /heroes/?limit=500
-```
-
-Returns:
-
-```
-422 Unprocessable Entity
-```
-
----
-
-## Path Parameter Validation
-
-Validated Hero ID.
-
-Example:
-
-```
-GET /heroes/1
-```
-
-Invalid example:
-
-```
-GET /heroes/-1
-```
-
-Returns:
-
-```
-422 Unprocessable Entity
-```
-
----
-
-## Automatic Validation Errors
-
-FastAPI automatically rejects malformed requests before reaching the database.
-
-Example invalid request:
-
-```json
-{
-  "name": "A",
-  "age": -5,
-  "secret_name": "B"
-}
-```
-
-Response:
-
-```json
-{
-  "detail": [
-    {
-      "loc": ["body", "name"],
-      "msg": "String should have at least 3 characters"
-    },
-    {
-      "loc": ["body", "age"],
-      "msg": "Input should be greater than or equal to 1"
-    }
-  ]
-}
-```
-
-Status Code:
-
-```
-422 Unprocessable Entity
-```
+- Better code organization
+- Easier maintenance
+- Improved readability
+- Reusable business logic
+- Easier testing
+- Scalable project structure
+- Separation of concerns
 
 ---
 
 # Running the Application
 
-Start the FastAPI development server:
+Start the development server:
+
+```bash
+fastapi dev main.py
+```
+
+Or using Uvicorn:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-Server URL:
+Server:
 
 ```
 http://127.0.0.1:8000
 ```
 
-Swagger Documentation:
+Swagger UI:
 
 ```
 http://127.0.0.1:8000/docs
 ```
 
-ReDoc Documentation:
+ReDoc:
 
 ```
 http://127.0.0.1:8000/redoc
@@ -207,15 +209,15 @@ http://127.0.0.1:8000/redoc
 
 ---
 
-# Validation Testing
+# API Testing
 
-## Valid Request
+## Create Hero
 
 ```json
 {
-  "name": "Batman",
-  "age": 35,
-  "secret_name": "Bruce Wayne"
+  "name": "Iron Man",
+  "age": 45,
+  "secret_name": "Tony Stark"
 }
 ```
 
@@ -227,48 +229,88 @@ Result:
 
 ---
 
-## Invalid Request Body
+## Retrieve Heroes
+
+```
+GET /heroes/
+```
+
+---
+
+## Retrieve Hero by ID
+
+```
+GET /heroes/1
+```
+
+---
+
+## Update Hero
 
 ```json
 {
-  "name": "A",
-  "age": -5,
-  "secret_name": "B"
+  "age": 46
 }
 ```
 
-Result:
+---
+
+## Delete Hero
 
 ```
-422 Unprocessable Entity
+DELETE /heroes/1
+```
+
+Returns:
+
+```json
+{
+  "ok": true
+}
 ```
 
 ---
 
-## Invalid Query Parameter
+# Design Patterns Used
 
-```
-GET /heroes/?limit=500
-```
+## Service Layer Pattern
 
-Result:
+The Service Layer contains all business logic and acts as an intermediary between the API routes and the Repository Layer.
 
-```
-422 Unprocessable Entity
-```
+## Repository Pattern
+
+The Repository Layer abstracts database operations from the rest of the application, allowing cleaner and more maintainable code.
+
+## Separation of Concerns (SoC)
+
+Each layer has a single responsibility:
+
+- Routes handle HTTP requests.
+- Services handle business logic.
+- Repositories handle database access.
 
 ---
 
-## Invalid Path Parameter
+# GitHub Repository
 
-```
-GET /heroes/-1
+**Repository:**
+
+https://github.com/Bharathisam/Backend_development
+
+**Stage 5 Branch:**
+
+https://github.com/Bharathisam/Backend_development/tree/stage5
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Bharathisam/Backend_development.git
 ```
 
-Result:
+Switch to the Stage 5 branch:
 
-```
-422 Unprocessable Entity
+```bash
+git checkout stage5
 ```
 
 ---
@@ -277,13 +319,12 @@ Result:
 
 By completing this stage, you learned how to:
 
-- Register API routes in FastAPI
-- Validate request bodies automatically
-- Validate query parameters
-- Validate path parameters
-- Return standardized 422 validation errors
-- Improve API reliability by rejecting invalid requests before business logic execution
-- Use Swagger UI to test and verify API validation
+- Build a layered FastAPI application
+- Separate API routes from business logic
+- Implement the Service Layer pattern
+- Implement the Repository Pattern
+- Organize code using Separation of Concerns
+- Create a maintainable and scalable backend architecture
 
 ---
 
@@ -293,11 +334,12 @@ By completing this stage, you learned how to:
 
 Implemented:
 
-- Route Registration
-- Request Body Validation
-- Query Parameter Validation
-- Path Parameter Validation
-- Automatic 422 Validation Errors
-- Swagger API Testing
+- Service Layer
+- Repository Pattern
+- Layered Architecture
+- Thin Route Functions
+- CRUD Operations
 - SQLModel Integration
-```
+- SQLite Database
+- Swagger API Testing
+- Clean Project Structure
