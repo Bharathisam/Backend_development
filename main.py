@@ -1,0 +1,120 @@
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException, Query, Path
+from sqlmodel import Session, SQLModel, create_engine, select
+
+from models import Hero, HeroCreate, HeroPublic, HeroUpdate
+
+# SQLite Database
+sqlite_file_name = "database.db"
+sqlite_url = f"sqlite:///{sqlite_file_name}"
+
+connect_args = {"check_same_thread": False}
+engine = create_engine(sqlite_url, connect_args=connect_args)
+
+
+# Create database tables
+def create_db_and_tables():
+    SQLModel.metadata.create_all(engine)
+
+
+# Database session dependency
+def get_session():
+    with Session(engine) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_session)]
+
+app = FastAPI()
+
+
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+
+
+# -------------------------
+# Create Hero
+# -------------------------
+@app.post("/heroes/", response_model=HeroPublic)
+def create_hero(hero: HeroCreate, session: SessionDep):
+    db_hero = Hero.model_validate(hero)
+    session.add(db_hero)
+    session.commit()
+    session.refresh(db_hero)
+    return db_hero
+
+
+# -------------------------
+# Get All Heroes
+# -------------------------
+@app.get("/heroes/", response_model=list[HeroPublic])
+def read_heroes(
+    session: SessionDep,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=100),
+):
+    heroes = session.exec(
+        select(Hero).offset(offset).limit(limit)
+    ).all()
+    return heroes
+
+
+# -------------------------
+# Get Hero by ID
+# -------------------------
+@app.get("/heroes/{hero_id}", response_model=HeroPublic)
+def read_hero(
+    hero_id: Annotated[int, Path(gt=0)],
+    session: SessionDep,
+):
+    hero = session.get(Hero, hero_id)
+
+    if not hero:
+        raise HTTPException(status_code=404, detail="Hero not found")
+
+    return hero
+
+
+# -------------------------
+# Update Hero
+# -------------------------
+@app.patch("/heroes/{hero_id}", response_model=HeroPublic)
+def update_hero(
+    hero_id: Annotated[int, Path(gt=0)],
+    hero: HeroUpdate,
+    session: SessionDep,
+):
+    hero_db = session.get(Hero, hero_id)
+
+    if not hero_db:
+        raise HTTPException(status_code=404, detail="Hero not found")
+
+    hero_data = hero.model_dump(exclude_unset=True)
+    hero_db.sqlmodel_update(hero_data)
+
+    session.add(hero_db)
+    session.commit()
+    session.refresh(hero_db)
+
+    return hero_db
+
+
+# -------------------------
+# Delete Hero
+# -------------------------
+@app.delete("/heroes/{hero_id}")
+def delete_hero(
+    hero_id: Annotated[int, Path(gt=0)],
+    session: SessionDep,
+):
+    hero = session.get(Hero, hero_id)
+
+    if not hero:
+        raise HTTPException(status_code=404, detail="Hero not found")
+
+    session.delete(hero)
+    session.commit()
+
+    return {"ok": True}
