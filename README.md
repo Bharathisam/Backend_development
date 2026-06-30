@@ -1,4 +1,4 @@
-# FastAPI Stage 6 – Error Handling, Standardized Responses & CORS
+#  Stage 6 – Error Handling, Standardized Responses & CORS
 
 ## Overview
 
