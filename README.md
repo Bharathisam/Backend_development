@@ -1,10 +1,10 @@
-# FastAPI Stage 5 – Business Logic and Data Access
+# FastAPI Stage 6 – Error Handling, Standardized Responses & CORS
 
 ## Overview
 
-This project is the fifth stage of learning **FastAPI** by implementing a clean project architecture using the **Service Layer** and **Repository Pattern**.
+This project is the sixth stage of learning **FastAPI** by implementing **global exception handling**, **standardized API responses**, **CORS middleware**, and **proper HTTP status codes**.
 
-The objective of this stage is to separate API routes, business logic, and database access into independent layers. This improves code readability, maintainability, scalability, and makes the application easier to test.
+The objective of this stage is to make every API response predictable and consistent. All errors are handled through a global exception handler, and Cross-Origin Resource Sharing (CORS) is configured to allow frontend applications to communicate with the backend securely.
 
 ---
 
@@ -12,12 +12,13 @@ The objective of this stage is to separate API routes, business logic, and datab
 
 After completing this stage, you will understand:
 
-- How to separate business logic from API routes
-- How to implement the Service Layer pattern
-- How to implement the Repository Pattern
-- How to organize FastAPI projects using a layered architecture
-- How to keep route functions clean and readable
-- How to improve code maintainability and scalability
+- How to implement global exception handling
+- How to create standardized API responses
+- How to handle validation and runtime errors
+- How CORS works and why it is required
+- How to configure CORS middleware in FastAPI
+- How to return proper HTTP status codes
+- How to build frontend-friendly REST APIs
 
 ---
 
@@ -27,8 +28,8 @@ After completing this stage, you will understand:
 - FastAPI
 - SQLModel
 - SQLite
-- Uvicorn
 - Pydantic v2
+- Uvicorn
 
 ---
 
@@ -39,9 +40,17 @@ FastAPI-Learning/
 │
 ├── alembic/
 │
+├── core/
+│   ├── __init__.py
+│   └── exception_handler.py
+│
 ├── repository/
 │   ├── __init__.py
 │   └── hero_repository.py
+│
+├── schemas/
+│   ├── __init__.py
+│   └── response.py
 │
 ├── services/
 │   ├── __init__.py
@@ -57,13 +66,102 @@ FastAPI-Learning/
 
 ---
 
-# Architecture
+# Features Implemented
+
+## Global Exception Handling
+
+Implemented centralized exception handling using FastAPI exception handlers.
+
+Handled exceptions include:
+
+- HTTPException
+- RequestValidationError
+- Generic Exception
+
+All errors now return a standardized JSON response.
+
+---
+
+## Standardized Error Response
+
+Instead of returning different error formats, every error follows the same structure.
+
+Example:
+
+```json
+{
+    "error": {
+        "code": 404,
+        "message": "Hero not found"
+    }
+}
+```
+
+This provides a consistent response format for frontend applications.
+
+---
+
+## Standardized Success Responses
+
+Successful API requests return appropriate HTTP status codes with structured response models.
+
+Example:
+
+```json
+{
+    "id": 1,
+    "name": "Spider-Man",
+    "age": 21
+}
+```
+
+---
+
+## CORS Middleware
+
+Configured Cross-Origin Resource Sharing (CORS) to allow frontend applications to access the API.
+
+Configured origins:
+
+```python
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+```
+
+Middleware configuration:
+
+- Allow Origins
+- Allow Credentials
+- Allow Methods
+- Allow Headers
+
+---
+
+## Proper HTTP Status Codes
+
+Implemented REST API status codes.
+
+| Operation | Status Code |
+|-----------|-------------|
+| Create Hero | **201 Created** |
+| Read Hero(s) | **200 OK** |
+| Update Hero | **200 OK** |
+| Delete Hero | **204 No Content** |
+| Hero Not Found | **404 Not Found** |
+| Validation Error | **422 Unprocessable Entity** |
+| Internal Server Error | **500 Internal Server Error** |
+
+---
+
+# Error Handling Flow
 
 ```
 Client
    │
    ▼
-FastAPI Routes (main.py)
+FastAPI Route
    │
    ▼
 Service Layer
@@ -72,74 +170,19 @@ Service Layer
 Repository Layer
    │
    ▼
-SQLite Database
+Database
+
+        ▲
+        │
+Global Exception Handler
+        │
+        ▼
+Standardized Error Response
 ```
 
 ---
 
-# Features Implemented
-
-## Thin Route Functions
-
-The API routes are responsible only for:
-
-- Receiving requests
-- Calling the appropriate service
-- Returning the response
-
-Example:
-
-```python
-@app.post("/heroes/", response_model=HeroPublic)
-def create_hero(hero: HeroCreate, session: SessionDep):
-    return hero_service.create_hero(session, hero)
-```
-
----
-
-## Service Layer
-
-The Service Layer contains the application's business logic.
-
-Responsibilities include:
-
-- Validating application workflow
-- Handling business rules
-- Managing exceptions
-- Calling the Repository Layer
-
-Implemented functions:
-
-- Create Hero
-- Read All Heroes
-- Read Hero by ID
-- Update Hero
-- Delete Hero
-
----
-
-## Repository Layer
-
-The Repository Layer is responsible for database operations.
-
-Responsibilities include:
-
-- Insert records
-- Retrieve records
-- Update records
-- Delete records
-
-Implemented functions:
-
-- create_hero()
-- get_all_heroes()
-- get_hero_by_id()
-- update_hero()
-- delete_hero()
-
----
-
-## CRUD Operations
+# API Endpoints
 
 | Method | Endpoint | Description |
 |---------|-----------|-------------|
@@ -151,33 +194,68 @@ Implemented functions:
 
 ---
 
-# Separation of Responsibilities
+# Response Examples
 
-| Layer | Responsibility |
-|--------|----------------|
-| main.py | API Routes |
-| hero_service.py | Business Logic |
-| hero_repository.py | Database Operations |
-| models.py | SQLModel Models |
-| database.py | Database Configuration |
+## Success Response
+
+```json
+{
+    "id": 1,
+    "name": "Spider-Man",
+    "age": 21
+}
+```
+
+Status:
+
+```
+201 Created
+```
 
 ---
 
-# Benefits of the Architecture
+## Hero Not Found
 
-- Better code organization
-- Easier maintenance
-- Improved readability
-- Reusable business logic
-- Easier testing
-- Scalable project structure
-- Separation of concerns
+```json
+{
+    "error": {
+        "code": 404,
+        "message": "Hero not found"
+    }
+}
+```
+
+---
+
+## Validation Error
+
+```json
+{
+    "error": {
+        "code": 422,
+        "message": "Validation Error"
+    }
+}
+```
+
+---
+
+## Internal Server Error
+
+```json
+{
+    "error": {
+        "code": 500,
+        "message": "Internal Server Error"
+    }
+}
+```
 
 ---
 
 # Running the Application
 
-Start the development server:
+Start the FastAPI development server:
 
 ```bash
 fastapi dev main.py
@@ -189,19 +267,19 @@ Or using Uvicorn:
 uvicorn main:app --reload
 ```
 
-Server:
+Server URL:
 
 ```
 http://127.0.0.1:8000
 ```
 
-Swagger UI:
+Swagger Documentation:
 
 ```
 http://127.0.0.1:8000/docs
 ```
 
-ReDoc:
+ReDoc Documentation:
 
 ```
 http://127.0.0.1:8000/redoc
@@ -209,19 +287,29 @@ http://127.0.0.1:8000/redoc
 
 ---
 
-# API Testing
+# Testing
 
 ## Create Hero
 
-```json
-{
-  "name": "Iron Man",
-  "age": 45,
-  "secret_name": "Tony Stark"
-}
+```http
+POST /heroes/
 ```
 
-Result:
+Expected Status:
+
+```
+201 Created
+```
+
+---
+
+## Retrieve Heroes
+
+```http
+GET /heroes/
+```
+
+Expected Status:
 
 ```
 200 OK
@@ -229,65 +317,72 @@ Result:
 
 ---
 
-## Retrieve Heroes
-
-```
-GET /heroes/
-```
-
----
-
-## Retrieve Hero by ID
-
-```
-GET /heroes/1
-```
-
----
-
 ## Update Hero
 
-```json
-{
-  "age": 46
-}
+```http
+PATCH /heroes/{hero_id}
+```
+
+Expected Status:
+
+```
+200 OK
 ```
 
 ---
 
 ## Delete Hero
 
-```
-DELETE /heroes/1
+```http
+DELETE /heroes/{hero_id}
 ```
 
-Returns:
+Expected Status:
+
+```
+204 No Content
+```
+
+---
+
+## Invalid Hero
+
+```http
+GET /heroes/999
+```
+
+Expected Response:
 
 ```json
 {
-  "ok": true
+    "error": {
+        "code": 404,
+        "message": "Hero not found"
+    }
 }
 ```
 
 ---
 
-# Design Patterns Used
+## Invalid Request Body
 
-## Service Layer Pattern
+Expected Status:
 
-The Service Layer contains all business logic and acts as an intermediary between the API routes and the Repository Layer.
+```
+422 Unprocessable Entity
+```
 
-## Repository Pattern
+---
 
-The Repository Layer abstracts database operations from the rest of the application, allowing cleaner and more maintainable code.
+# Benefits
 
-## Separation of Concerns (SoC)
-
-Each layer has a single responsibility:
-
-- Routes handle HTTP requests.
-- Services handle business logic.
-- Repositories handle database access.
+- Consistent API responses
+- Centralized exception handling
+- Better frontend integration
+- Proper REST API status codes
+- Secure browser communication with CORS
+- Improved maintainability
+- Cleaner application architecture
 
 ---
 
@@ -297,9 +392,9 @@ Each layer has a single responsibility:
 
 https://github.com/Bharathisam/Backend_development
 
-**Stage 5 Branch:**
+**Stage 6 Branch:**
 
-https://github.com/Bharathisam/Backend_development/tree/stage5
+https://github.com/Bharathisam/Backend_development/tree/stage6
 
 Clone the repository:
 
@@ -307,10 +402,10 @@ Clone the repository:
 git clone https://github.com/Bharathisam/Backend_development.git
 ```
 
-Switch to the Stage 5 branch:
+Switch to the Stage 6 branch:
 
 ```bash
-git checkout stage5
+git checkout stage6
 ```
 
 ---
@@ -319,12 +414,13 @@ git checkout stage5
 
 By completing this stage, you learned how to:
 
-- Build a layered FastAPI application
-- Separate API routes from business logic
-- Implement the Service Layer pattern
-- Implement the Repository Pattern
-- Organize code using Separation of Concerns
-- Create a maintainable and scalable backend architecture
+- Implement global exception handling
+- Create standardized API response models
+- Handle HTTP and validation errors consistently
+- Configure CORS middleware for frontend integration
+- Return proper HTTP status codes
+- Build production-ready REST API responses
+- Improve API reliability and maintainability
 
 ---
 
@@ -334,12 +430,14 @@ By completing this stage, you learned how to:
 
 Implemented:
 
-- Service Layer
-- Repository Pattern
+- Global Exception Handling
+- Standardized Error Responses
+- Standardized Response Models
+- CORS Middleware
+- Proper HTTP Status Codes
+- Swagger API Testing
 - Layered Architecture
-- Thin Route Functions
-- CRUD Operations
+- Service & Repository Pattern
 - SQLModel Integration
 - SQLite Database
-- Swagger API Testing
-- Clean Project Structure
+```
