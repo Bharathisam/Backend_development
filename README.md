@@ -1,444 +1,303 @@
-# 🚀 FastAPI Stage 3 – SQLModel, SQLite & Database Migrations
+# FastAPI Stage 4 – Route Registration & Input Validation
 
-## 📖 Overview
+## Overview
 
-This project is the third stage of learning **FastAPI** by implementing **database integration** using **SQLModel**, **SQLite**, and **Alembic**.
+This project is the fourth stage of learning **FastAPI** by implementing **route registration** and **input validation** using FastAPI and SQLModel.
 
-The objective of this stage is to understand how to define database models, store application data in a relational database, generate migration scripts, and safely update the database schema without manually modifying database tables.
+The objective of this stage is to validate incoming requests before they reach the application logic or database. FastAPI automatically validates request bodies, query parameters, and path parameters, returning clear **422 Unprocessable Entity** responses for invalid input.
 
 ---
 
-# 🎯 Learning Objectives
+# Learning Objectives
 
 After completing this stage, you will understand:
 
-- SQLModel ORM
-- SQLite database integration
-- Database Models
-- Request & Response Models
-- CRUD Operations
-- Dependency Injection
-- Database Sessions
-- Alembic Migrations
-- Schema Versioning
-- Automatic Migration Generation
+- How to register API routes using FastAPI
+- How to validate request bodies using SQLModel/Pydantic
+- How to validate query parameters
+- How to validate path parameters
+- How FastAPI automatically returns validation errors (422)
+- How Swagger UI documents validation rules automatically
 
 ---
 
-# 📂 Project Structure
+# Technologies Used
 
-```text
-FastAPI-Stage3/
+- Python 3.14
+- FastAPI
+- SQLModel
+- SQLite
+- Uvicorn
+- Pydantic v2
+
+---
+
+# Project Structure
+
+```
+FastAPI-Learning/
 │
-├── main.py                 # FastAPI application
-├── models.py               # SQLModel database models
-├── database.db             # SQLite database
+├── alembic/
+├── database.db
+├── database.py
+├── main.py
+├── models.py
 ├── pyproject.toml
-├── alembic.ini             # Alembic configuration
 ├── README.md
-├── .gitignore
-│
-└── alembic/
-    ├── env.py
-    ├── script.py.mako
-    └── versions/
+└── venv/
 ```
 
 ---
 
-# ⚙️ Prerequisites
+# Features Implemented
 
-Before starting, make sure you have installed:
+## Route Registration
 
-- Python 3.11 or later
-- pip
-- Virtual Environment (venv)
+Registered CRUD API endpoints for Heroes.
 
-Check Python version:
-
-```bash
-python --version
-```
-
----
-
-# 🛠️ Installation
-
-## 1. Clone Repository
-
-```bash
-git clone <repository-url>
-cd FastAPI-Stage3
-```
+| Method | Endpoint | Description |
+|---------|-----------|-------------|
+| POST | `/heroes/` | Create a new hero |
+| GET | `/heroes/` | Retrieve all heroes |
+| GET | `/heroes/{hero_id}` | Retrieve hero by ID |
+| PATCH | `/heroes/{hero_id}` | Update hero details |
+| DELETE | `/heroes/{hero_id}` | Delete hero |
 
 ---
 
-## 2. Create Virtual Environment
+## Request Body Validation
 
-```bash
-python -m venv venv
-```
+Added validation for incoming request data.
 
----
+Validation rules include:
 
-## 3. Activate Virtual Environment
+- Hero name must contain **3–50 characters**
+- Secret name must contain **3–100 characters**
+- Age must be between **1 and 120**
 
-### Windows
-
-```bash
-.\venv\Scripts\activate
-```
-
-### Linux / macOS
-
-```bash
-source venv/bin/activate
-```
-
----
-
-## 4. Install Dependencies
-
-```bash
-pip install "fastapi[standard]"
-pip install sqlmodel
-pip install alembic
-```
-
----
-
-## 5. Run Development Server
-
-```bash
-fastapi dev
-```
-
----
-
-# 🌐 Application URLs
-
-| Service | URL |
-|----------|-----|
-| Main Application | http://127.0.0.1:8000 |
-| Swagger UI | http://127.0.0.1:8000/docs |
-| ReDoc | http://127.0.0.1:8000/redoc |
-| OpenAPI JSON | http://127.0.0.1:8000/openapi.json |
-
----
-
-# 📌 Database Models
-
-This project uses multiple models to separate the database schema from the API contract.
-
-## HeroBase
-
-Contains common fields shared by all models.
-
-```python
-name: str
-age: int | None
-```
-
----
-
-## Hero
-
-Database table model.
-
-```python
-id
-name
-age
-secret_name
-```
-
----
-
-## HeroCreate
-
-Used for creating a new hero.
-
-```python
-name
-age
-secret_name
-```
-
----
-
-## HeroPublic
-
-Returned to API clients.
-
-```python
-id
-name
-age
-```
-
-> The `secret_name` field is intentionally hidden from API responses.
-
----
-
-## HeroUpdate
-
-Used for updating an existing hero.
-
-All fields are optional.
-
----
-
-# 📌 API Endpoints
-
-## POST /heroes/
-
-Creates a new hero.
-
-### Request
+Example:
 
 ```json
 {
-  "name": "Spider-Man",
-  "age": 18,
-  "secret_name": "Peter Parker"
-}
-```
-
-### Response
-
-```json
-{
-  "id": 1,
-  "name": "Spider-Man",
-  "age": 18
+  "name": "Batman",
+  "age": 35,
+  "secret_name": "Bruce Wayne"
 }
 ```
 
 ---
 
-## GET /heroes/
+## Query Parameter Validation
 
-Returns all heroes.
+Validated pagination parameters.
+
+| Parameter | Validation |
+|-----------|------------|
+| offset | Must be ≥ 0 |
+| limit | Must be between 1 and 100 |
+
+Example:
+
+```
+GET /heroes/?offset=0&limit=10
+```
+
+Invalid example:
+
+```
+GET /heroes/?limit=500
+```
+
+Returns:
+
+```
+422 Unprocessable Entity
+```
 
 ---
 
-## GET /heroes/{hero_id}
+## Path Parameter Validation
 
-Returns a hero by ID.
+Validated Hero ID.
+
+Example:
+
+```
+GET /heroes/1
+```
+
+Invalid example:
+
+```
+GET /heroes/-1
+```
+
+Returns:
+
+```
+422 Unprocessable Entity
+```
 
 ---
 
-## PATCH /heroes/{hero_id}
+## Automatic Validation Errors
 
-Updates an existing hero.
+FastAPI automatically rejects malformed requests before reaching the database.
+
+Example invalid request:
+
+```json
+{
+  "name": "A",
+  "age": -5,
+  "secret_name": "B"
+}
+```
+
+Response:
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "name"],
+      "msg": "String should have at least 3 characters"
+    },
+    {
+      "loc": ["body", "age"],
+      "msg": "Input should be greater than or equal to 1"
+    }
+  ]
+}
+```
+
+Status Code:
+
+```
+422 Unprocessable Entity
+```
 
 ---
 
-## DELETE /heroes/{hero_id}
+# Running the Application
 
-Deletes a hero.
+Start the FastAPI development server:
 
----
+```bash
+uvicorn main:app --reload
+```
 
-# 🧪 Testing the API
+Server URL:
 
-Open Swagger UI:
+```
+http://127.0.0.1:8000
+```
+
+Swagger Documentation:
 
 ```
 http://127.0.0.1:8000/docs
 ```
 
-You can:
-
-- Create Heroes
-- Retrieve Heroes
-- Update Heroes
-- Delete Heroes
-
----
-
-# 🗄️ SQLite Database
-
-The application automatically creates
+ReDoc Documentation:
 
 ```
-database.db
-```
-
-SQLite stores all Hero records locally.
-
----
-
-# 🔄 Database Migrations with Alembic
-
-Initialize Alembic:
-
-```bash
-alembic init alembic
+http://127.0.0.1:8000/redoc
 ```
 
 ---
 
-Generate a migration:
+# Validation Testing
 
-```bash
-alembic revision --autogenerate -m "Create Hero table"
+## Valid Request
+
+```json
+{
+  "name": "Batman",
+  "age": 35,
+  "secret_name": "Bruce Wayne"
+}
+```
+
+Result:
+
+```
+200 OK
 ```
 
 ---
 
-Apply the migration:
+## Invalid Request Body
 
-```bash
-alembic upgrade head
+```json
+{
+  "name": "A",
+  "age": -5,
+  "secret_name": "B"
+}
+```
+
+Result:
+
+```
+422 Unprocessable Entity
 ```
 
 ---
 
-Whenever the database model changes:
+## Invalid Query Parameter
 
-```bash
-alembic revision --autogenerate -m "Add new column"
-alembic upgrade head
+```
+GET /heroes/?limit=500
 ```
 
-This safely updates the database schema without manually editing database tables.
+Result:
 
----
-
-# 📚 Understanding the Code
-
-## SQLModel
-
-SQLModel combines SQLAlchemy and Pydantic.
-
-It provides:
-
-- Database ORM
-- Data Validation
-- Type Hints
-- Automatic Serialization
-
----
-
-## SQLite
-
-SQLite is a lightweight relational database used for local development.
-
-No additional installation is required.
-
----
-
-## Dependency Injection
-
-Database sessions are created using:
-
-```python
-Depends(get_session)
+```
+422 Unprocessable Entity
 ```
 
-This automatically provides a database session for every request.
-
 ---
 
-## Response Models
+## Invalid Path Parameter
 
-The API returns
-
-```python
-HeroPublic
+```
+GET /heroes/-1
 ```
 
-instead of
+Result:
 
-```python
-Hero
+```
+422 Unprocessable Entity
 ```
 
-This prevents internal database fields such as `secret_name` from being exposed.
+---
+
+# Learning Outcomes
+
+By completing this stage, you learned how to:
+
+- Register API routes in FastAPI
+- Validate request bodies automatically
+- Validate query parameters
+- Validate path parameters
+- Return standardized 422 validation errors
+- Improve API reliability by rejecting invalid requests before business logic execution
+- Use Swagger UI to test and verify API validation
 
 ---
 
-## Alembic
+# Stage Status
 
-Alembic manages database schema changes using migration files.
+**Completed**
 
-Instead of manually editing tables, migrations allow database updates to be version-controlled and reproducible.
+Implemented:
 
----
-
-# 💡 Key Concepts Learned
-
-- SQLModel
-- SQLite
-- ORM Models
-- CRUD APIs
-- Database Sessions
-- Dependency Injection
-- Alembic
-- Database Migrations
-- Request Models
-- Response Models
-- Schema Versioning
-
----
-
-# 🛠️ Technologies Used
-
-| Technology | Version |
-|------------|----------|
-| Python | 3.11+ |
-| FastAPI | Latest |
-| SQLModel | Latest |
-| SQLAlchemy | 2.x |
-| SQLite | Latest |
-| Alembic | Latest |
-| Uvicorn | Latest |
-
----
-
-# 📈 Learning Outcomes
-
-By completing this stage, you can:
-
-- ✅ Create database tables using SQLModel
-- ✅ Store application data in SQLite
-- ✅ Build CRUD APIs
-- ✅ Separate Database Models from API Models
-- ✅ Generate Alembic migration files
-- ✅ Apply database migrations
-- ✅ Safely modify database schemas
-- ✅ Protect internal database fields using response models
-
----
-
-# 🚀 Next Stage
-
-In the next stage, you will learn:
-
-- Relationships (One-to-Many)
-- Foreign Keys
-- Authentication
-- JWT Tokens
-- User Login
-- Protected Routes
-- Dependency Injection
-- Advanced CRUD Operations
-
----
-
-# 📚 References
-
-## Official Documentation
-
-- FastAPI Documentation: https://fastapi.tiangolo.com/
-- SQLModel Documentation: https://sqlmodel.tiangolo.com/
-- SQLAlchemy Documentation: https://docs.sqlalchemy.org/
-- Alembic Documentation: https://alembic.sqlalchemy.org/
-- SQLite Documentation: https://sqlite.org/
-
----
-
-# ⭐ Why SQLModel & Alembic?
-
-SQLModel combines the power of SQLAlchemy with Pydantic, making it easy to build type-safe database models for FastAPI applications. Alembic provides a reliable migration system that tracks database schema changes, allowing developers to evolve the database safely without manually modifying tables.
+- Route Registration
+- Request Body Validation
+- Query Parameter Validation
+- Path Parameter Validation
+- Automatic 422 Validation Errors
+- Swagger API Testing
+- SQLModel Integration
+```
