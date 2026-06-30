@@ -50,5 +50,3 @@ def delete_hero(session, hero_id):
         )
 
     hero_repository.delete_hero(session, hero)
-
-    return {"ok": True}
