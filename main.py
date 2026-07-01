@@ -41,10 +41,18 @@ SessionDep = Annotated[Session, Depends(get_session)]
 # -----------------------------
 app = FastAPI(
     title="Hero Management API",
+    description="FastAPI Learning Project - Stage 8: Handoff & Integration Support",
     version="1.0.0",
-    description="Stage 6 - Error Handling, Standardized Responses, and CORS",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    contact={
+        "name": "Bharathi S",
+        "url": "https://github.com/Bharathisam/Backend_development",
+    },
+    license_info={
+        "name": "MIT License",
+    },
 )
-
 
 # -----------------------------
 # Register Global Exception Handlers

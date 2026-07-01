@@ -1,0 +1,21 @@
+{
+  "validHero": {
+    "name": "Batman",
+    "age": 35,
+    "secret_name": "Bruce Wayne"
+  },
+
+  "longNameHero": {
+    "name": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    "age": 35,
+    "secret_name": "Long Hero"
+  },
+
+  "invalidHero": {
+    "name": "",
+    "age": -5,
+    "secret_name": ""
+  },
+
+  "emptyList": []
+}
